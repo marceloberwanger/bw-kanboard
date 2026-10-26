@@ -97,4 +97,21 @@ class EstimatedTimeComparisonAnalyticTest extends Base
 
         $this->assertEquals($expected, $estimatedTimeComparisonAnalytic->build(1));
     }
+
+    public function testBuildRoundsHours()
+    {
+        $taskCreationModel = new TaskCreationModel($this->container);
+        $projectModel = new ProjectModel($this->container);
+        $estimatedTimeComparisonAnalytic = new EstimatedTimeComparisonAnalytic($this->container);
+
+        $this->assertEquals(1, $projectModel->create(array('name' => 'test1')));
+
+        // MySQL stores hours as FLOAT: without rounding, these sums come back as 1.7400000095367432 and 0.9399999976158142
+        $this->assertNotFalse($taskCreationModel->create(array('project_id' => 1, 'title' => 'test', 'time_estimated' => 0.64, 'time_spent' => 0.64)));
+        $this->assertNotFalse($taskCreationModel->create(array('project_id' => 1, 'title' => 'test', 'time_estimated' => 1.1, 'time_spent' => 0.3)));
+
+        $metrics = $estimatedTimeComparisonAnalytic->build(1);
+        $this->assertSame(1.74, $metrics['open']['time_estimated']);
+        $this->assertSame(0.94, $metrics['open']['time_spent']);
+    }
 }

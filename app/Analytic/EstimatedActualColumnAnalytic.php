@@ -40,8 +40,8 @@ class EstimatedActualColumnAnalytic extends Base
         }
 
         foreach ($rows as $row) {
-            $metrics[$row['column_id']]['hours_spent'] = (float) $row['hours_spent'];
-            $metrics[$row['column_id']]['hours_estimated'] = (float) $row['hours_estimated'];
+            $metrics[$row['column_id']]['hours_spent'] = round((float) $row['hours_spent'], 2);
+            $metrics[$row['column_id']]['hours_estimated'] = round((float) $row['hours_estimated'], 2);
         }
 
         return $metrics;

@@ -41,8 +41,8 @@ class EstimatedTimeComparisonAnalytic extends Base
 
         foreach ($rows as $row) {
             $key = $row['is_active'] == TaskModel::STATUS_OPEN ? 'open' : 'closed';
-            $metrics[$key]['time_spent'] = (float) $row['time_spent'];
-            $metrics[$key]['time_estimated'] = (float) $row['time_estimated'];
+            $metrics[$key]['time_spent'] = round((float) $row['time_spent'], 2);
+            $metrics[$key]['time_estimated'] = round((float) $row['time_estimated'], 2);
         }
 
         return $metrics;

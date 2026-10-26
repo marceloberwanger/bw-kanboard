@@ -50,6 +50,7 @@ class SessionManager extends Base
         }
 
         session_name('KB_SID');
+        $this->removeLegacyCookie();
         session_start();
     }
 
@@ -89,6 +90,60 @@ class SessionManager extends Base
     {
         $path = rtrim((string) $this->helper->url->dir(), '/');
         return $path === '' ? '/' : $path;
+    }
+
+    /**
+     * Get the current session id when the browser also sends the legacy session cookie
+     *
+     * Kanboard 1.2.54 and older scoped the session cookie to the directory with a
+     * trailing slash ("/kanboard/"). Browsers that logged in before the upgrade keep
+     * that cookie next to the current one and send it first, because cookies with
+     * longer paths come first. PHP would then use the stale session id, so every
+     * request starts a new session and every form fails the CSRF check.
+     *
+     * @access public
+     * @return string  Empty string when there is no legacy cookie to replace
+     */
+    public function getSessionIdBehindLegacyCookie()
+    {
+        $legacyPath = (string) $this->helper->url->dir();
+        $requestPath = (string) parse_url((string) $this->request->getUri(), PHP_URL_PATH);
+
+        if ($legacyPath === $this->getCookiePath() || strpos($requestPath, $legacyPath) !== 0) {
+            return '';
+        }
+
+        preg_match_all('/(?:^|;)\s*KB_SID=([^;]*)/', (string) $this->request->getServerVariable('HTTP_COOKIE'), $matches);
+
+        return count($matches[1]) > 1 ? $matches[1][1] : '';
+    }
+
+    /**
+     * Expire the legacy session cookie and use the current one for this request
+     *
+     * @access private
+     */
+    private function removeLegacyCookie()
+    {
+        $sessionId = $this->getSessionIdBehindLegacyCookie();
+
+        if ($sessionId === '') {
+            return;
+        }
+
+        $params = session_get_cookie_params();
+
+        setcookie(
+            session_name(),
+            '',
+            time() - 42000,
+            $this->helper->url->dir(),
+            $params['domain'],
+            $params['secure'],
+            $params['httponly']
+        );
+
+        $_COOKIE[session_name()] = $sessionId;
     }
 
     /**
